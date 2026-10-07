@@ -42,7 +42,7 @@ cd tweak
 make package FINALPACKAGE=1
 ```
 
-The package lands in `tweak/packages/`. The Makefile targets the iOS 17.3.1 SDK; to build with another, pass `TARGET=iphone:clang:<sdk>:15.0`. `make do` installs over SSH using `THEOS_DEVICE_IP` and `THEOS_DEVICE_PORT`.
+The package lands in `tweak/packages/`. The Makefile targets the iOS 17.3.1 SDK (the workflow downloads it from [xybp888/iOS-SDKs](https://github.com/xybp888/iOS-SDKs)); to build with another, pass `TARGET=iphone:clang:<sdk>:15.0`. `make do` installs over SSH using `THEOS_DEVICE_IP` and `THEOS_DEVICE_PORT`.
 
 ## How it works
 
