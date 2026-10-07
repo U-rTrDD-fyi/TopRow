@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>title</key><string>TopRow</string>
+	<key>items</key>
+	<array>
+		<dict>
+			<key>cell</key><string>PSGroupCell</string>
+			<key>label</key><string>Preview</string>
+			<key>footerText</key><string>Tap to bring up the keyboard. Switches and the Key Height slider update it live while it's open.</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>key</key><string>Preview</string>
+			<key>placeholder</key><string>Type here to try the keyboard</string>
+			<key>autoCaps</key><string>Sentences</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSGroupCell</string>
+			<key>footerText</key><string>Changes apply right away; an open keyboard re-appears with the new layout.</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSSwitchCell</string>
+			<key>label</key><string>Enabled</string>
+			<key>key</key><string>Enabled</string>
+			<key>default</key><true/>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSGroupCell</string>
+			<key>label</key><string>Extra Row</string>
+			<key>footerText</key><string>Up to 10 keys, separated by spaces. Leave a field empty for no extra row on that keyboard. On 123 and #+= the row sits under the top row. "Lowercase Row When Auto-Capitalized" keeps the lowercase row at the start of a sentence, so the Shift row shows only with Shift or Caps Lock. "Show Symbol Hints" puts each Shift-row character in small type on the lowercase row's keys. Both need the same number of keys in the lowercase and Shift rows.</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>Lowercase</string>
+			<key>key</key><string>LowercaseRow</string>
+			<key>default</key><string>1 2 3 4 5 6 7 8 9 0</string>
+			<key>noAutoCorrect</key><true/>
+			<key>autoCaps</key><string>None</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>Shift / Caps</string>
+			<key>key</key><string>ShiftedRow</string>
+			<key>default</key><string>! @ # $ % ^ &amp; * ( )</string>
+			<key>noAutoCorrect</key><true/>
+			<key>autoCaps</key><string>None</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>123 / #+=</string>
+			<key>key</key><string>NumbersRow</string>
+			<key>default</key><string>! @ # $ % ^ &amp; * ( )</string>
+			<key>noAutoCorrect</key><true/>
+			<key>autoCaps</key><string>None</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSSwitchCell</string>
+			<key>label</key><string>Show Symbol Hints</string>
+			<key>key</key><string>SymbolHints</string>
+			<key>default</key><false/>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSSwitchCell</string>
+			<key>label</key><string>Lowercase Row When Auto-Capitalized</string>
+			<key>key</key><string>LowercaseRowWhenAutoShifted</string>
+			<key>default</key><false/>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSGroupCell</string>
+			<key>label</key><string>Landscape</string>
+			<key>footerText</key><string>Leave a landscape row blank to use the same keys as portrait.</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSSwitchCell</string>
+			<key>label</key><string>Show in Landscape</string>
+			<key>key</key><string>ShowInLandscape</string>
+			<key>default</key><true/>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>Lowercase</string>
+			<key>key</key><string>LandscapeLowercaseRow</string>
+			<key>placeholder</key><string>Same as portrait</string>
+			<key>noAutoCorrect</key><true/>
+			<key>autoCaps</key><string>None</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>Shift / Caps</string>
+			<key>key</key><string>LandscapeShiftedRow</string>
+			<key>placeholder</key><string>Same as portrait</string>
+			<key>noAutoCorrect</key><true/>
+			<key>autoCaps</key><string>None</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>123 / #+=</string>
+			<key>key</key><string>LandscapeNumbersRow</string>
+			<key>placeholder</key><string>Same as portrait</string>
+			<key>noAutoCorrect</key><true/>
+			<key>autoCaps</key><string>None</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSGroupCell</string>
+			<key>label</key><string>Key Labels</string>
+			<key>footerText</key><string>Rename the key that switches to numbers (123) and back to letters (ABC). Up to 5 characters; blank keeps Apple's label.</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>123 Key</string>
+			<key>key</key><string>Label123</string>
+			<key>placeholder</key><string>123</string>
+			<key>noAutoCorrect</key><true/>
+			<key>autoCaps</key><string>None</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>ABC Key</string>
+			<key>key</key><string>LabelABC</string>
+			<key>placeholder</key><string>ABC</string>
+			<key>noAutoCorrect</key><true/>
+			<key>autoCaps</key><string>None</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSGroupCell</string>
+			<key>label</key><string>Key Height</string>
+			<key>footerText</key><string>Scales every row of keys; 100% is Apple's size.</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSSliderCell</string>
+			<key>cellClass</key><string>TPRSliderCell</string>
+			<key>key</key><string>KeyHeight</string>
+			<key>default</key><real>100</real>
+			<key>min</key><real>80</real>
+			<key>max</key><real>130</real>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSGroupCell</string>
+			<key>label</key><string>Bottom Area</string>
+			<key>footerText</key><string>Height of the strip under the keys (emoji and dictation buttons, or a dock bar from another tweak). The buttons move into the free space first and only shrink when they no longer fit. 100% is Apple's size.</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSSliderCell</string>
+			<key>cellClass</key><string>TPRSliderCell</string>
+			<key>key</key><string>BottomAreaHeight</string>
+			<key>default</key><real>100</real>
+			<key>min</key><real>60</real>
+			<key>max</key><real>130</real>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSGroupCell</string>
+			<key>label</key><string>Where</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSLinkCell</string>
+			<key>detail</key><string>TPRKeyboardTypesController</string>
+			<key>label</key><string>Keyboard Types</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSLinkListCell</string>
+			<key>detail</key><string>TPRExcludedAppsController</string>
+			<key>label</key><string>Excluded Apps</string>
+			<key>key</key><string>ExcludedApps</string>
+			<key>sections</key>
+			<array>
+				<dict><key>sectionType</key><string>Visible</string></dict>
+			</array>
+			<key>useSearchBar</key><true/>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSGroupCell</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSButtonCell</string>
+			<key>label</key><string>Share Diagnostics</string>
+			<key>action</key><string>shareDiagnostics:</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSButtonCell</string>
+			<key>label</key><string>Reset to Defaults</string>
+			<key>action</key><string>resetDefaults:</string>
+		</dict>
+	</array>
+</dict>
+</plist>

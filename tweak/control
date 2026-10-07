@@ -1,0 +1,17 @@
+Package: dev.rtrdd.toprow
+Name: TopRow
+Version: 1.0.0
+Architecture: iphoneos-arm64
+Description: A number & symbol row for the stock keyboard
+ Adds a fifth row to the stock iOS keyboard: 1-0 on letters, !@#$%^&*() with
+ shift or caps lock, and an extra symbol row on 123. Every row is editable,
+ with key height, bottom area, landscape, per-app and per-keyboard-type
+ options, all applied live. iPhone only. Free and open source.
+Maintainer: U-rTrDD-fyi <275768457+U-rTrDD-fyi@users.noreply.github.com>
+Author: U-rTrDD-fyi <275768457+U-rTrDD-fyi@users.noreply.github.com>
+Section: Tweaks
+Homepage: https://github.com/U-rTrDD-fyi/TopRow
+Icon: https://dev.rtrdd.fyi/icons/dev.rtrdd.toprow.png
+Depiction: https://dev.rtrdd.fyi/depictions/dev.rtrdd.toprow.html
+SileoDepiction: https://dev.rtrdd.fyi/depictions/dev.rtrdd.toprow.json
+Depends: mobilesubstrate, firmware (>= 15.0), preferenceloader, com.opa334.altlist

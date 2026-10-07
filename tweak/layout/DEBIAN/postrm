@@ -1,0 +1,9 @@
+#!/bin/sh
+# The kill-switch file isn't owned by the package; don't let it outlive the tweak.
+if [ "$1" = remove ] || [ "$1" = purge ]; then
+    rm -f /var/jb/var/mobile/Library/Preferences/dev.rtrdd.toprow.disabled
+fi
+if [ "$1" = purge ]; then
+    rm -f /var/jb/var/mobile/Library/Preferences/dev.rtrdd.toprow.plist
+fi
+exit 0

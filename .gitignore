@@ -1,0 +1,6 @@
+.theos/
+packages/
+.DS_Store
+tools/sim/build/
+tools/sim/out/
+tools/sim/.udid
