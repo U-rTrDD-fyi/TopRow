@@ -1,0 +1,79 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  # Pinned so every build uses the same Theos and the same AltList the package depends on.
+  THEOS_COMMIT: 67db2ab8d950910161730de77c322658ea3e6b44
+  ALTLIST_DEB: https://opa334.github.io/debs/com.opa334.altlist_1.0.11_iphoneos-arm64.deb
+  ALTLIST_SHA256: 5835a6b0eacd5d99d272b3f74a744b28b1c4c16ada03aade36d0a636bca5e1f0
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check version
+        id: version
+        run: |
+          version=$(grep '^Version:' tweak/control | cut -d' ' -f2)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [[ "$GITHUB_REF" == refs/tags/v* && "${GITHUB_REF_NAME#v}" != "$version" ]]; then
+            echo "::error::Tag $GITHUB_REF_NAME doesn't match Version $version in tweak/control"
+            exit 1
+          fi
+
+      - name: Install tools
+        run: brew install ldid dpkg make
+
+      - name: Install Theos
+        run: |
+          THEOS="$RUNNER_TEMP/theos"
+          git clone --quiet https://github.com/theos/theos.git "$THEOS"
+          git -C "$THEOS" checkout --quiet "$THEOS_COMMIT"
+          git -C "$THEOS" submodule update --init --recursive --quiet
+          echo "THEOS=$THEOS" >> "$GITHUB_ENV"
+
+      - name: Install AltList
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/altlist.deb" "$ALTLIST_DEB"
+          echo "$ALTLIST_SHA256  $RUNNER_TEMP/altlist.deb" | shasum -a 256 -c -
+          dpkg-deb -x "$RUNNER_TEMP/altlist.deb" "$RUNNER_TEMP/altlist"
+          mkdir -p "$THEOS/lib/iphone/rootless"
+          cp -R "$RUNNER_TEMP/altlist/var/jb/Library/Frameworks/AltList.framework" "$THEOS/lib/iphone/rootless/"
+
+      - name: Build
+        # Xcode's iOS SDK on the runner; the deployment target stays iOS 15.
+        run: gmake -C tweak package FINALPACKAGE=1 TARGET=iphone:clang:latest:15.0
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TopRow-${{ steps.version.outputs.version }}
+          path: tweak/packages/*.deb
+          if-no-files-found: error
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          deb=$(ls tweak/packages/*.deb)
+          {
+            awk -v v="$VERSION" '$0 == "## " v {on=1; next} /^## /{on=0} on' CHANGELOG.md
+            echo
+            echo "**Install:** add https://dev.rtrdd.fyi to Sileo or Zebra, or install the .deb below."
+            echo "iPhone, rootless jailbreak, iOS 15 or later."
+            echo
+            echo "SHA-256: \`$(shasum -a 256 "$deb" | cut -d' ' -f1)\`"
+          } > "$RUNNER_TEMP/notes.md"
+          gh release create "$GITHUB_REF_NAME" "$deb" --title "TopRow $VERSION" --notes-file "$RUNNER_TEMP/notes.md"

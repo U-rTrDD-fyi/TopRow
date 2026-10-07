@@ -29,13 +29,13 @@ A number row for the stock iOS keyboard. Free, open source, and adjustable witho
 
 ## Install
 
-Add **https://dev.rtrdd.fyi** to Sileo or Zebra and install **TopRow**.
+Add **https://dev.rtrdd.fyi** to Sileo or Zebra and install **TopRow**, or download the `.deb` from [Releases](https://github.com/U-rTrDD-fyi/TopRow/releases).
 
 Requirements: iPhone on a rootless jailbreak, iOS 15 or later. Developed and tested on iOS 17.3.1 with Dopamine (and the iOS 18.4 simulator); reports from other versions are welcome. Depends on PreferenceLoader and AltList. Does nothing on iPad. Uninstall any other number-row tweak first; two of them on the same keyboard will clash.
 
 ## Build
 
-Requires [Theos](https://theos.dev) and [AltList](https://github.com/opa334/AltList) (put `AltList.framework` from its release into `$THEOS/lib/iphone/rootless/`).
+GitHub Actions builds every push on a macOS runner and publishes a release for each `v*` tag (see `.github/workflows/build.yml`). To build locally you need [Theos](https://theos.dev) and [AltList](https://github.com/opa334/AltList) (extract `AltList.framework` from the `com.opa334.altlist` package on https://opa334.github.io into `$THEOS/lib/iphone/rootless/`, as the workflow does).
 
 ```sh
 cd tweak
