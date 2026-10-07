@@ -1,0 +1,10 @@
+{
+	entry = {
+		bundle = TopRowPrefs;
+		cell = PSLinkCell;
+		detail = TPRRootListController;
+		icon = icon.png;
+		isController = 1;
+		label = TopRow;
+	};
+}

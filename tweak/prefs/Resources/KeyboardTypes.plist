@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>title</key><string>Keyboard Types</string>
+	<key>items</key>
+	<array>
+		<dict>
+			<key>cell</key><string>PSGroupCell</string>
+			<key>label</key><string>Use TopRow On</string>
+			<key>footerText</key><string>Turned off, that keyboard stays completely stock: no extra row, key height or custom labels. The regular keyboard always gets the row, including in password fields. Number and phone pads never do.</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSSwitchCell</string>
+			<key>label</key><string>Email Fields</string>
+			<key>key</key><string>RowOnEmail</string>
+			<key>default</key><true/>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSSwitchCell</string>
+			<key>label</key><string>Web Addresses &amp; Search</string>
+			<key>key</key><string>RowOnWeb</string>
+			<key>default</key><true/>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSSwitchCell</string>
+			<key>label</key><string>Twitter Fields</string>
+			<key>key</key><string>RowOnTwitter</string>
+			<key>default</key><true/>
+		</dict>
+	</array>
+</dict>
+</plist>
