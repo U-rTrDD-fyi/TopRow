@@ -11,8 +11,10 @@ permissions:
   contents: write
 
 env:
-  # Pinned so every build uses the same Theos and the same AltList the package depends on.
+  # Pinned so every build uses the same Theos, iOS SDK and AltList as the tested release.
   THEOS_COMMIT: 67db2ab8d950910161730de77c322658ea3e6b44
+  SDK_ZIP: https://github.com/xybp888/iOS-SDKs/releases/download/iOS17.3.1-SDKs/iPhoneOS17.3.1.sdk.zip
+  SDK_SHA256: 5db95a1a0492a6436d2cd40a0f66cf63f06b6d0a70c9a617ace25feb0dce222d
   ALTLIST_DEB: https://opa334.github.io/debs/com.opa334.altlist_1.0.11_iphoneos-arm64.deb
   ALTLIST_SHA256: 5835a6b0eacd5d99d272b3f74a744b28b1c4c16ada03aade36d0a636bca5e1f0
 
@@ -43,6 +45,15 @@ jobs:
           git -C "$THEOS" submodule update --init --recursive --quiet
           echo "THEOS=$THEOS" >> "$GITHUB_ENV"
 
+      - name: Install iOS SDK
+        # Includes the private frameworks (Preferences) that Xcode's SDK leaves out.
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/sdk.zip" "$SDK_ZIP"
+          echo "$SDK_SHA256  $RUNNER_TEMP/sdk.zip" | shasum -a 256 -c -
+          unzip -q "$RUNNER_TEMP/sdk.zip" -d "$RUNNER_TEMP/sdk"
+          mkdir -p "$THEOS/sdks"
+          mv "$RUNNER_TEMP/sdk/iPhoneOS17.3.1.sdk" "$THEOS/sdks/"
+
       - name: Install AltList
         run: |
           curl -fsSL -o "$RUNNER_TEMP/altlist.deb" "$ALTLIST_DEB"
@@ -52,8 +63,7 @@ jobs:
           cp -R "$RUNNER_TEMP/altlist/var/jb/Library/Frameworks/AltList.framework" "$THEOS/lib/iphone/rootless/"
 
       - name: Build
-        # Xcode's iOS SDK on the runner; the deployment target stays iOS 15.
-        run: gmake -C tweak package FINALPACKAGE=1 TARGET=iphone:clang:latest:15.0
+        run: gmake -C tweak package FINALPACKAGE=1
 
       - uses: actions/upload-artifact@v4
         with:
