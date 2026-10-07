@@ -6,6 +6,14 @@ A number row for the stock iOS keyboard. Free, open source, and adjustable witho
 - **Shift / Caps Lock:** `! @ # $ % ^ & * ( )`
 - **123 and #+=:** an extra `! @ # $ % ^ & * ( )` row under the digits
 
+<p>
+  <img src="screenshots/1.jpg" width="160" alt="Number row on the keyboard">
+  <img src="screenshots/2.jpg" width="160" alt="Shift and Caps Lock symbol row">
+  <img src="screenshots/3.jpg" width="160" alt="123 keyboard with the extra symbol row">
+  <img src="screenshots/4.jpg" width="160" alt="TopRow settings">
+  <img src="screenshots/5.jpg" width="160" alt="Key Height and Bottom Area sliders">
+</p>
+
 ## Features
 
 - Edit every row: 1–10 keys, up to 8 characters per key
