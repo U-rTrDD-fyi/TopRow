@@ -1,6 +1,6 @@
 Package: dev.rtrdd.toprow
 Name: TopRow
-Version: 1.0.0
+Version: 1.0.1
 Architecture: iphoneos-arm64
 Description: A number & symbol row for the stock keyboard
  Adds a fifth row to the stock iOS keyboard: 1-0 on letters, !@#$%^&*() with

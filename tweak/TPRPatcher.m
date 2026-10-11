@@ -350,6 +350,9 @@ static id BuildPatchedKeyboard(id keyboard, NSString *name, TPRConfig *config, N
     NSString *app = NSBundle.mainBundle.bundleIdentifier;
     if (app && [config.excludedApps containsObject:app]) { *outcome = @"SKIP excluded app"; return nil; }
     if (TPRType(keyboard) != TPRNodeKeyboard || !HasSetters(keyboard)) { *outcome = @"SKIP not a keyboard"; return nil; }
+    // CarPlay keyboards ("Car-Landscape-QWERTY", "Car-Alphabetic-Linear-Keyboard") have a
+    // fixed height on the car screen, so an added row lands on top of the letters.
+    if ([name hasPrefix:@"Car-"]) { *outcome = @"SKIP CarPlay"; return nil; }
     // Only letter keyboards get a row. Number/phone/decimal/passcode pads have no
     // letters plane; their rows are 3 keys wide and must be left alone.
     for (NSString *pad in @[ @"NumberPad", @"PhonePad", @"DecimalPad", @"PasscodePad" ])

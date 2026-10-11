@@ -11,6 +11,11 @@
 #import <UIKit/UIKit.h>
 #import <dlfcn.h>
 #import <mach-o/dyld.h>
+#import <mach-o/loader.h>
+#import <sys/sysctl.h>
+#import <unistd.h>
+#import <sys/stat.h>
+#import <fcntl.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import "TPRConfig.h"
@@ -18,9 +23,30 @@
 #import "TPRPatcher.h"
 #import "TPRTree.h"
 
-// Logs to the system log and keeps the last few lines in memory for the Settings
-// pane's "Share Diagnostics" (plain text, by design).
+// Logs to the system log, keeps the last few lines in memory for the Settings pane's
+// "Share Diagnostics" (plain text, by design), and appends to a shared log file from
+// every process allowed to write it (SpringBoard, Settings, unsandboxed apps), so the
+// report can show what happened elsewhere. Sandboxed apps can't write it; that's fine.
 static NSMutableArray<NSString *> *gRecentLog;
+
+static void TPRAppendToLogFile(NSString *entry) {
+    static int fd = -2;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        NSString *dir = TPRRootPath(@"/var/mobile/Library/Logs/TopRow");
+        NSString *path = [dir stringByAppendingPathComponent:@"TopRow.log"];
+        [[NSFileManager defaultManager] createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:NULL];
+        struct stat st;
+        if (stat(path.fileSystemRepresentation, &st) == 0 && st.st_size > 256 * 1024)   // keep two files, ~512 KB
+            rename(path.fileSystemRepresentation, [path stringByAppendingString:@".1"].fileSystemRepresentation);
+        fd = open(path.fileSystemRepresentation, O_WRONLY | O_APPEND | O_CREAT | O_CLOEXEC, 0666);
+    });
+    if (fd < 0) return;
+    NSString *line = [NSString stringWithFormat:@"%@[%d] %@\n", NSProcessInfo.processInfo.processName,
+                      getpid(), entry];
+    NSData *data = [line dataUsingEncoding:NSUTF8StringEncoding];
+    write(fd, data.bytes, data.length);   // one write per line: O_APPEND keeps lines whole across processes
+}
 
 static void TPRRecord(NSString *line) {
     static dispatch_once_t once;
@@ -30,6 +56,7 @@ static void TPRRecord(NSString *line) {
         [gRecentLog addObject:entry];
         if (gRecentLog.count > 40) [gRecentLog removeObjectAtIndex:0];
     }
+    TPRAppendToLogFile(entry);
 }
 
 // Looked up with dlsym by the Settings pane (same process).
@@ -305,6 +332,31 @@ static void HookMethod(NSString *className, SEL sel, IMP replacement, IMP *origi
         *original = method_setImplementation(method, replacement);
 }
 
+// From the model identifier, not UIDevice: this runs in the dylib constructor, and touching
+// UIKit there can deadlock app launch against UIKit's own startup thread (0x8badf00d hangs).
+static BOOL IsPad(void) {
+#if TPR_SIMULATOR
+    const char *model = getenv("SIMULATOR_MODEL_IDENTIFIER");
+    return model && strncmp(model, "iPad", 4) == 0;
+#else
+    char model[64] = "";
+    size_t size = sizeof(model);
+    return sysctlbyname("hw.machine", model, &size, NULL, 0) == 0 && strncmp(model, "iPad", 4) == 0;
+#endif
+}
+
+// This build's LC_UUID. Hang reports name images only by UUID, so it goes into the log
+// for Share Diagnostics to recognize this build in them after an update.
+static NSString *OwnUUID(void) {
+    Dl_info info;
+    if (!dladdr((const void *)&OwnUUID, &info) || !info.dli_fbase) return @"?";
+    const struct mach_header_64 *mh = info.dli_fbase;
+    const struct load_command *lc = (const struct load_command *)(mh + 1);
+    for (uint32_t c = 0; c < mh->ncmds; c++, lc = (const struct load_command *)((const char *)lc + lc->cmdsize))
+        if (lc->cmd == LC_UUID) return [[NSUUID alloc] initWithUUIDBytes:((const struct uuid_command *)lc)->uuid].UUIDString;
+    return @"?";
+}
+
 static BOOL ShouldLoadInProcess(void) {
     char exe[PATH_MAX];
     uint32_t size = sizeof(exe);
@@ -323,10 +375,10 @@ __attribute__((constructor)) static void TPRInit(void) {
         if (!ShouldLoadInProcess()) return;
         // iPhone only: iPad keyboards are laid out differently (and already put digits and
         // symbols on their letter keys).
-        if (UIDevice.currentDevice.userInterfaceIdiom != UIUserInterfaceIdiomPhone) return;
+        if (IsPad()) return;
         // Creating this file (e.g. over SSH) disables the tweak at next app launch.
         if ([[NSFileManager defaultManager] fileExistsAtPath:TPRKillSwitchFile]) {
-            TPRLog(@"kill switch present, not hooking");
+            TPRLog(@"kill switch present, not hooking (uuid %@)", OwnUUID());
             return;
         }
         if (!NSClassFromString(@"TUIKBGraphSerialization"))
@@ -336,7 +388,7 @@ __attribute__((constructor)) static void TPRInit(void) {
         SEL cacheSel = NSSelectorFromString(@"cacheIdentifierForKeyplaneNamed:");
         // All or nothing: a patched layout drawn from stale cached images is worse than no patch.
         if (!TargetMethod(@"TUIKBGraphSerialization", keyboardSel) || !TargetMethod(@"UIKeyboardLayoutStar", cacheSel)) {
-            TPRLog(@"hooks NOT installed");
+            TPRLog(@"hooks NOT installed (uuid %@)", OwnUUID());
             return;
         }
         HookMethod(@"UIKeyboardLayoutStar", cacheSel, (IMP)hook_cacheIdentifierForKeyplaneNamed,
@@ -362,6 +414,6 @@ __attribute__((constructor)) static void TPRInit(void) {
         CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, OnReloadNotification,
                                         (__bridge CFStringRef)TPRReloadNotification, NULL,
                                         CFNotificationSuspensionBehaviorCoalesce);
-        TPRLog(@"hooks installed, config %@", [TPRConfig current].fingerprint);
+        TPRLog(@"hooks installed, config %@, uuid %@", [TPRConfig current].fingerprint, OwnUUID());
     }
 }

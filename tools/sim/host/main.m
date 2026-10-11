@@ -381,6 +381,21 @@ static void TapLayoutPoint(UIView *layout, CGPoint p) {
         ((void (*)(id, SEL))objc_msgSend)(target, sel);
         [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1.0]];
         Out(@"call %@ done", arg);
+    } else if ([verb isEqualToString:@"kbname"]) {
+        // kbname <keyboard name>: load a keyboard by name through UIKit (and the tweak's hook)
+        SEL sel = NSSelectorFromString(@"keyboardWithName:screenTraits:");
+        id kb = ((id (*)(id, SEL, id, id))objc_msgSend)(NSClassFromString(@"UIKeyboardLayoutStar"), sel, arg,
+                                                        Call(layout, @"screenTraits"));
+        CGRect frame = CGRectZero;
+        if ([kb respondsToSelector:NSSelectorFromString(@"frame")])
+            frame = ((CGRect (*)(id, SEL))objc_msgSend)(kb, NSSelectorFromString(@"frame"));
+        Out(@"kbname %@ -> %@ frame %@", arg, kb ? Call(kb, @"name") : @"nil", NSStringFromCGRect(frame));
+        for (id plane in Call(kb, @"subtrees")) {
+            BOOL alpha = [plane respondsToSelector:NSSelectorFromString(@"isAlphabeticPlane")] &&
+                         ((BOOL (*)(id, SEL))objc_msgSend)(plane, NSSelectorFromString(@"isAlphabeticPlane"));
+            Out(@"  plane %@ alpha=%d props=%@", Call(plane, @"name"), alpha,
+                [[Call(plane, @"properties") description] stringByReplacingOccurrencesOfString:@"\n" withString:@" "]);
+        }
     } else if ([verb isEqualToString:@"forcerebuild"]) {
         ((void (*)(id, SEL, BOOL, BOOL))objc_msgSend)(impl, NSSelectorFromString(@"setInHardwareKeyboardMode:forceRebuild:"), NO, YES);
         [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1.0]];
