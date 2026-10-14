@@ -1,9 +1,9 @@
 include $(THEOS)/makefiles/common.mk
 
 BUNDLE_NAME = TopRowPrefs
-TopRowPrefs_FILES = TPRPrefsStore.m TPRBaseListController.m TPRRootListController.m TPRSliderCell.m TPRKeyboardTypesController.m TPRExcludedAppsController.m
+TopRowPrefs_FILES = TPRPrefsStore.m TPRSetups.m TPRShareSheet.m TPRBaseListController.m TPRRootListController.m TPRSliderCell.m TPRKeyboardTypesController.m TPRKeysController.m TPRSetupsController.m TPRExcludedAppsController.m
 TopRowPrefs_CFLAGS = -fobjc-arc -DTPR_VERSION=\"$(TPR_VERSION)\"
-TopRowPrefs_FRAMEWORKS = UIKit
+TopRowPrefs_FRAMEWORKS = UIKit UniformTypeIdentifiers
 TopRowPrefs_PRIVATE_FRAMEWORKS = Preferences
 TopRowPrefs_EXTRA_FRAMEWORKS = AltList
 TopRowPrefs_INSTALL_PATH = /Library/PreferenceBundles

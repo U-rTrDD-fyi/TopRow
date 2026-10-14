@@ -246,24 +246,27 @@ static void hook_dockLayoutSubviews(UIView *self, SEL _cmd) {
     ScaleBottomArea(self, active ? config.bottomAreaScale : 1);
 }
 
-// ---- custom 123 / ABC labels -------------------------------------------------------
-// UIKit localizes the keyplane-switch key ("More-Key") in updateLocalizedKeysOnKeyplane:;
-// override its label afterwards. On letter planes it reads "123", elsewhere "ABC".
+// ---- custom 123 / ABC / #+= labels -------------------------------------------------
+// UIKit localizes the keyplane-switch keys in updateLocalizedKeysOnKeyplane:; override
+// their labels afterwards. "More-Key" reads "123" on letters and "ABC" elsewhere; on 123
+// and #+= the Shift key switches between them and reads "#+=" or "123".
 
 static void (*orig_updateLocalizedKeys)(id, SEL, id);
 
 static void hook_updateLocalizedKeys(id self, SEL _cmd, id keyplane) {
     orig_updateLocalizedKeys(self, _cmd, keyplane);
     TPRConfig *config = [TPRConfig current];
-    if (!config.enabled || (!config.label123 && !config.labelABC)) return;
+    if (!config.enabled || (!config.label123 && !config.labelABC && !config.labelSymbols)) return;
     NSString *app = NSBundle.mainBundle.bundleIdentifier;
     if (app && [config.excludedApps containsObject:app]) return;
     if (!TPRIsPatchedKeyplane(keyplane)) return;   // Apple's own trees keep Apple's labels
     BOOL letters = CallBool(keyplane, @"isAlphabeticPlane");
-    NSString *label = letters ? config.label123 : config.labelABC;
-    if (!label) return;
+    BOOL shifted = CallBool(keyplane, @"isShiftKeyplane");
     for (id key in CallObject(keyplane, @"keys")) {
-        if (![TPRName(key) isEqualToString:@"More-Key"]) continue;
+        NSString *name = TPRName(key), *label = nil;
+        if ([name isEqualToString:@"More-Key"]) label = letters ? config.label123 : config.labelABC;
+        else if ([name isEqualToString:@"Shift-Key"] && !letters) label = shifted ? config.label123 : config.labelSymbols;
+        if (!label) continue;
         NSMutableDictionary *props = [TPRProperties(key) mutableCopy];
         props[@"KBdisplayString"] = label;
         [(id<TPRKBTree>)key setProperties:props];
@@ -313,6 +316,24 @@ static void hook_keyplaneLayoutSubviews(UIView *self, SEL _cmd) {
     // Keep them above the key artwork if UIKit added views since the last pass.
     if (used.count && self.subviews.lastObject.tag != kHintTag)
         for (UILabel *label in used) [self bringSubviewToFront:label];
+}
+
+// ---- NewTerm: a SwiftUI view that never settles ---------------------------------------
+// NewTerm centers its bell HUD (54pt, a SwiftUI view that resizes to fit) above the
+// keyboard. At some keyboard heights (TopRow's default on an iPhone 14 Pro Max, iOS 16.2)
+// SwiftUI measures it 54 and 54.33pt on alternate layout passes, so the app hangs at
+// launch. In NewTerm, a sub-pixel size change on a SwiftUI hosting view is that rounding
+// noise: drop it.
+
+static void (*orig_setConstant)(NSLayoutConstraint *, SEL, CGFloat);
+
+static void hook_setConstant(NSLayoutConstraint *self, SEL _cmd, CGFloat constant) {
+    CGFloat change = fabs(constant - self.constant);
+    if (change > 0 && change < 0.5 &&
+        (self.firstAttribute == NSLayoutAttributeWidth || self.firstAttribute == NSLayoutAttributeHeight) &&
+        [NSStringFromClass(object_getClass(self.firstItem)) hasPrefix:@"_TtGC7SwiftUI14_UIHostingView"])
+        return;
+    orig_setConstant(self, _cmd, constant);
 }
 
 static Method TargetMethod(NSString *className, SEL sel) {
@@ -410,6 +431,12 @@ __attribute__((constructor)) static void TPRInit(void) {
             SEL sel = NSSelectorFromString(hook[0]);
             if (TargetMethod(@"UIKeyboardLayoutStar", sel))
                 HookMethod(@"UIKeyboardLayoutStar", sel, (IMP)[hook[1] pointerValue], (IMP *)[hook[2] pointerValue]);
+        }
+        // By executable name: NewTerm's forks have their own bundle IDs.
+        if ([NSBundle.mainBundle.executablePath.lastPathComponent isEqualToString:@"NewTerm"] &&
+            TargetMethod(@"NSLayoutConstraint", @selector(setConstant:))) {
+            HookMethod(@"NSLayoutConstraint", @selector(setConstant:), (IMP)hook_setConstant, (IMP *)&orig_setConstant);
+            TPRLog(@"NewTerm: ignoring sub-pixel SwiftUI size changes");
         }
         CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, OnReloadNotification,
                                         (__bridge CFStringRef)TPRReloadNotification, NULL,

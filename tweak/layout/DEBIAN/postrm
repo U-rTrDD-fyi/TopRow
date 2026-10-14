@@ -5,5 +5,6 @@ if [ "$1" = remove ] || [ "$1" = purge ]; then
 fi
 if [ "$1" = purge ]; then
     rm -f /var/jb/var/mobile/Library/Preferences/dev.rtrdd.toprow.plist
+    rm -f /var/jb/var/mobile/Library/Preferences/dev.rtrdd.toprow.setups.plist
 fi
 exit 0

@@ -28,8 +28,18 @@
 		</dict>
 		<dict>
 			<key>cell</key><string>PSGroupCell</string>
-			<key>label</key><string>Extra Row</string>
-			<key>footerText</key><string>Up to 10 keys, separated by spaces. Leave a field empty for no extra row on that keyboard. On 123 and #+= the row sits under the top row. "Lowercase Row When Auto-Capitalized" keeps the lowercase row at the start of a sentence, so the Shift row shows only with Shift or Caps Lock. "Show Symbol Hints" puts each Shift-row character in small type on the lowercase row's keys. Both need the same number of keys in the lowercase and Shift rows.</string>
+			<key>label</key><string>Keyboard Keys</string>
+			<key>footerText</key><string>Change any key on the letters, Shift, 123 and #+= pages, and rename 123, ABC and #+=.</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSLinkCell</string>
+			<key>detail</key><string>TPRKeysController</string>
+			<key>label</key><string>Keys</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSGroupCell</string>
+			<key>label</key><string>Top Row</string>
+			<key>footerText</key><string>Up to 10 keys, separated by spaces. Leave a field empty for no row on that keyboard. On 123 and #+= the row sits under the digits. "Lowercase Row When Auto-Capitalized" keeps the lowercase row at the start of a sentence, so the Shift row shows only with Shift or Caps Lock. "Show Symbol Hints" puts each Shift-row character in small type on the lowercase row's keys. Both need the same number of keys in the lowercase and Shift rows.</string>
 		</dict>
 		<dict>
 			<key>cell</key><string>PSEditTextCell</string>
@@ -104,27 +114,6 @@
 		</dict>
 		<dict>
 			<key>cell</key><string>PSGroupCell</string>
-			<key>label</key><string>Key Labels</string>
-			<key>footerText</key><string>Rename the key that switches to numbers (123) and back to letters (ABC). Up to 5 characters; blank keeps Apple's label.</string>
-		</dict>
-		<dict>
-			<key>cell</key><string>PSEditTextCell</string>
-			<key>label</key><string>123 Key</string>
-			<key>key</key><string>Label123</string>
-			<key>placeholder</key><string>123</string>
-			<key>noAutoCorrect</key><true/>
-			<key>autoCaps</key><string>None</string>
-		</dict>
-		<dict>
-			<key>cell</key><string>PSEditTextCell</string>
-			<key>label</key><string>ABC Key</string>
-			<key>key</key><string>LabelABC</string>
-			<key>placeholder</key><string>ABC</string>
-			<key>noAutoCorrect</key><true/>
-			<key>autoCaps</key><string>None</string>
-		</dict>
-		<dict>
-			<key>cell</key><string>PSGroupCell</string>
 			<key>label</key><string>Key Height</string>
 			<key>footerText</key><string>Scales every row of keys; 100% is Apple's size.</string>
 		</dict>
@@ -168,6 +157,16 @@
 				<dict><key>sectionType</key><string>Visible</string></dict>
 			</array>
 			<key>useSearchBar</key><true/>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSGroupCell</string>
+			<key>label</key><string>Save &amp; Share</string>
+			<key>footerText</key><string>Save your settings as setups, switch between them, and share them with friends.</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSLinkCell</string>
+			<key>detail</key><string>TPRSetupsController</string>
+			<key>label</key><string>Setups</string>
 		</dict>
 		<dict>
 			<key>cell</key><string>PSGroupCell</string>

@@ -1,30 +1,35 @@
 # TopRow
 
-A number row for the stock iOS keyboard. Free, open source, and adjustable without a respring.
+A number row for the stock iOS keyboard, and every other key your way. Free, open source, and adjustable without a respring.
 
 - **Letters:** `1 2 3 4 5 6 7 8 9 0`
 - **Shift / Caps Lock:** `! @ # $ % ^ & * ( )`
 - **123 and #+=:** an extra `! @ # $ % ^ & * ( )` row under the digits
 
 <p>
-  <img src="screenshots/1.jpg" width="160" alt="Number row on the keyboard">
-  <img src="screenshots/2.jpg" width="160" alt="Shift and Caps Lock symbol row">
-  <img src="screenshots/3.jpg" width="160" alt="123 keyboard with the extra symbol row">
-  <img src="screenshots/4.jpg" width="160" alt="TopRow settings">
-  <img src="screenshots/5.jpg" width="160" alt="Key Height and Bottom Area sliders">
+  <img src="screenshots/1.jpg" width="160" alt="Custom keys under the number row">
+  <img src="screenshots/2.jpg" width="160" alt="Keys page">
+  <img src="screenshots/3.jpg" width="160" alt="Setups page">
+  <img src="screenshots/4.jpg" width="160" alt="Number row on the keyboard">
+  <img src="screenshots/5.jpg" width="160" alt="Shift and Caps Lock symbol row">
+  <img src="screenshots/6.jpg" width="160" alt="123 keyboard with the extra symbol row">
+  <img src="screenshots/7.jpg" width="160" alt="TopRow settings">
+  <img src="screenshots/8.jpg" width="160" alt="Key Height and Bottom Area sliders">
 </p>
 
 ## Features
 
-- Edit every row: 1–10 keys, up to 8 characters per key
+- **Top row:** edit it per keyboard page, 1–10 keys, up to 8 characters per key
+- **Keys page:** change any key on the letters, Shift / Caps Lock, 123 and #+= pages. Add, remove, reorder or retype keys (up to 12 per row); keys kept from Apple's row keep their accents and localized currency signs
+- **Setups:** save your settings under a name, switch between them, and share them as text or a file; automatic backups before resets and before applying a setup
 - Keep the digit row while the keyboard is only auto-capitalized
 - Symbol hints in the corner of each number key
 - Key Height (80–130%) and Bottom Area (60–130%) sliders
 - Landscape on/off, with optional separate landscape rows
-- Custom labels for the 123 and ABC keys
+- Custom labels for the 123, ABC and #+= keys
 - Per-app exclusion (AltList) and per-keyboard-type control (email, web, Twitter)
 - Works in password fields, share sheets and password managers' AutoFill sheets; number, phone and passcode pads stay stock
-- Every setting applies live; a preview field sits right in the settings page
+- Every setting applies live; preview fields sit right in the settings pages
 - **Share Diagnostics** exports a plain-text report for bug reports
 
 ## Install
@@ -51,17 +56,19 @@ UIKit builds each keyboard from a tree of `UIKBTree` nodes that it gets from `-[
 1. Every keyplane (lowercase, shifted, 123, #+=) is copied, and the extra row's keys are merged into an existing row. Everything below moves down one row pitch, keeping Apple's key sizes and gaps.
 2. Keys copy their geometry from the row they sit over, or are spread evenly when the row has a different key count.
 3. UIKit caches rendered keyplane images by keyset and geometry-set names, not by labels. The settings fingerprint is therefore folded into those names, so a changed row never reuses stale artwork.
-4. A Darwin notification from the settings pane reloads the configuration and rebuilds the keyboard in place.
+4. The Keys page replaces whole rows in the same copies. A row is only replaced on the US QWERTY layout (all of a plane's rows must match Apple's), so other languages and the email and URL number pages keep theirs. Keys left in a row stay Apple's own key objects; new ones are plain keys, sized like Apple's while they fit and narrower when they don't.
+5. A Darwin notification from the settings pane reloads the configuration and rebuilds the keyboard in place.
 
-The rest is small hooks: `UIKeyboardLayoutStar` for the auto-capitalization option and the 123/ABC labels, `UIKBKeyplaneView` for symbol hints, and `UIKeyboardDockView` for the Bottom Area slider.
+The rest is small hooks: `UIKeyboardLayoutStar` for the auto-capitalization option and the 123/ABC/#+= labels, `UIKBKeyplaneView` for symbol hints, and `UIKeyboardDockView` for the Bottom Area slider.
 
 | File | What it does |
 | --- | --- |
 | `tweak/Tweak.m` | Hooks, live reload, Bottom Area, hints, labels |
 | `tweak/TPRPatcher.m` | Copies and patches keyboard trees |
 | `tweak/TPRConfig.m` | Reads and validates settings; the single config snapshot |
+| `tweak/TPRKeyRows.h` | Apple's US rows, shared by the tweak and the Keys page |
 | `tweak/TPRTree.m` | Guarded helpers for UIKit's private tree objects |
-| `tweak/prefs/` | The settings pane (PreferenceLoader bundle) |
+| `tweak/prefs/` | The settings pane (PreferenceLoader bundle), including saved setups and their text format |
 | `tools/sim/` | Simulator test bench (see below) |
 
 ## Simulator test bench

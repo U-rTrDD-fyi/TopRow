@@ -14,6 +14,7 @@ static NSString *const kDefaultNumbers   = @"! @ # $ % ^ & * ( )";
 @implementation TPRConfig {
     NSArray<NSArray<NSString *> *> *_rows;            // indexed by TPRPlaneKind
     NSArray *_landscapeRows;                           // same, NSNull = use the portrait row
+    NSArray<NSArray *> *_keyRows;                      // [TPRKeyPlane][row], NSNull = Apple's row
 }
 
 // 64 bits of SHA-256, as hex. Not -[NSString hash]: CFString hashes only the first,
@@ -45,6 +46,16 @@ static NSArray<NSString *> *ParseRow(id value) {
         [keys addObject:part];
     }
     return keys.count <= kMaxKeys ? keys : nil;
+}
+
+// A whole keyboard row: 1-12 keys; empty, invalid or Apple's own row -> nil (Apple's row).
+static NSArray<NSString *> *ParseKeyRow(id value, TPRKeyPlane plane, NSUInteger row) {
+    if (![value isKindOfClass:[NSString class]]) return nil;
+    NSArray<NSString *> *keys = TPRSplitKeys(value);
+    if (!keys.count || keys.count > TPRMaxRowKeys) return nil;
+    for (NSString *key in keys)
+        if (CharacterCount(key) > TPRMaxKeyLength) return nil;
+    return [keys isEqualToArray:TPRSplitKeys(TPRStockKeyRow(plane, row))] ? nil : keys;
 }
 
 // Up to 5 characters, like the stock labels; empty or invalid -> nil (Apple's label).
@@ -85,6 +96,24 @@ static BOOL BoolValue(id value, BOOL fallback) {
         _landscapeRows = landscape;
         _label123 = ParseLabel(prefs[@"Label123"]);
         _labelABC = ParseLabel(prefs[@"LabelABC"]);
+        _labelSymbols = ParseLabel(prefs[@"LabelSymbols"]);
+        NSMutableArray *keyRows = [NSMutableArray array];
+        for (TPRKeyPlane plane = 0; plane < TPRKeyPlaneCount; plane++) {
+            NSMutableArray *rows = [NSMutableArray array];
+            for (NSUInteger row = 0; row < TPRKeyRowCount; row++) {
+                NSArray *keys = ParseKeyRow(prefs[TPRKeyRowPrefsKey(plane, row)], plane, row);
+                // Shift / Caps Lock follows an edited letters row unless it has its own.
+                if (!keys && plane == TPRKeyPlaneShifted && ![prefs[TPRKeyRowPrefsKey(plane, row)] length] &&
+                    [keyRows[TPRKeyPlaneLetters][row] isKindOfClass:[NSArray class]]) {
+                    NSMutableArray *upper = [NSMutableArray array];
+                    for (NSString *key in keyRows[TPRKeyPlaneLetters][row]) [upper addObject:key.uppercaseString];
+                    keys = ParseKeyRow([upper componentsJoinedByString:@" "], plane, row);
+                }
+                [rows addObject:keys ?: [NSNull null]];
+            }
+            [keyRows addObject:rows];
+        }
+        _keyRows = keyRows;
         NSMutableSet *excluded = [NSMutableSet set];
         id apps = prefs[@"ExcludedApps"];
         if ([apps isKindOfClass:[NSArray class]])
@@ -104,7 +133,11 @@ static BOOL BoolValue(id value, BOOL fallback) {
         [parts addObject:_symbolHints ? @"S" : @"-"];
         // Bump when how keys are drawn changes, so cached key images from older builds don't match.
         [parts addObject:@"render-8"];
-        [parts addObject:[NSString stringWithFormat:@"%@\x1e%@", _label123 ?: @"", _labelABC ?: @""]];
+        [parts addObject:[NSString stringWithFormat:@"%@\x1e%@\x1e%@", _label123 ?: @"", _labelABC ?: @"",
+                          _labelSymbols ?: @""]];
+        for (NSArray *rows in _keyRows)
+            for (id row in rows)
+                [parts addObject:[row isKindOfClass:[NSArray class]] ? [row componentsJoinedByString:@"\x1e"] : @"\x1d"];
         // Only whether this app is excluded: editing the list mustn't rebuild every other app's keyboard.
         NSString *app = NSBundle.mainBundle.bundleIdentifier;
         [parts addObject:app && [excluded containsObject:app] ? @"X" : @"I"];
@@ -123,6 +156,19 @@ static BOOL BoolValue(id value, BOOL fallback) {
 - (NSArray<NSString *> *)rowForPlane:(TPRPlaneKind)kind landscape:(BOOL)landscape {
     id row = landscape && (NSUInteger)kind < _landscapeRows.count ? _landscapeRows[kind] : nil;
     return [row isKindOfClass:[NSArray class]] ? row : [self rowForPlane:kind];
+}
+
+- (NSArray<NSString *> *)keysForPlane:(TPRKeyPlane)plane row:(NSUInteger)row {
+    if ((NSUInteger)plane >= _keyRows.count || row >= TPRKeyRowCount) return nil;
+    id keys = _keyRows[plane][row];
+    return [keys isKindOfClass:[NSArray class]] ? keys : nil;
+}
+
+- (BOOL)hasCustomKeys {
+    for (TPRKeyPlane plane = 0; plane < TPRKeyPlaneCount; plane++)
+        for (NSUInteger row = 0; row < TPRKeyRowCount; row++)
+            if ([self keysForPlane:plane row:row]) return YES;
+    return NO;
 }
 
 + (NSString *)prefsPath {

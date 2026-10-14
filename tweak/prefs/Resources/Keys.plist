@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>title</key><string>Keys</string>
+	<key>items</key>
+	<array>
+		<dict>
+			<key>cell</key><string>PSGroupCell</string>
+			<key>label</key><string>Preview</string>
+			<key>footerText</key><string>Tap to try your keys.</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>key</key><string>Preview</string>
+			<key>placeholder</key><string>Type here to try the keyboard</string>
+			<key>autoCaps</key><string>Sentences</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSGroupCell</string>
+			<key>footerText</key><string>Separate keys with spaces: up to 12 per row, each up to 8 characters. Add, remove, reorder or retype any key. Keys you keep from Apple's row work exactly as before (accents on long-press, your region's currency); a row with more keys gets narrower keys. Clear a row to get Apple's back. These apply to the US English layout (QWERTY), in landscape too (even with Show in Landscape off); other languages and the email and web-address number pages keep their own keys.</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSGroupCell</string>
+			<key>label</key><string>Letters</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>Row 1</string>
+			<key>key</key><string>KeyRowLetters1</string>
+			<key>default</key><string>q w e r t y u i o p</string>
+			<key>noAutoCorrect</key><true/>
+			<key>autoCaps</key><string>None</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>Row 2</string>
+			<key>key</key><string>KeyRowLetters2</string>
+			<key>default</key><string>a s d f g h j k l</string>
+			<key>noAutoCorrect</key><true/>
+			<key>autoCaps</key><string>None</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>Row 3</string>
+			<key>key</key><string>KeyRowLetters3</string>
+			<key>default</key><string>z x c v b n m</string>
+			<key>noAutoCorrect</key><true/>
+			<key>autoCaps</key><string>None</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSGroupCell</string>
+			<key>label</key><string>Shift / Caps Lock</string>
+			<key>footerText</key><string>Until you change them, these follow the Letters rows in capitals.</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>Row 1</string>
+			<key>key</key><string>KeyRowShifted1</string>
+			<key>default</key><string>Q W E R T Y U I O P</string>
+			<key>noAutoCorrect</key><true/>
+			<key>autoCaps</key><string>None</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>Row 2</string>
+			<key>key</key><string>KeyRowShifted2</string>
+			<key>default</key><string>A S D F G H J K L</string>
+			<key>noAutoCorrect</key><true/>
+			<key>autoCaps</key><string>None</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>Row 3</string>
+			<key>key</key><string>KeyRowShifted3</string>
+			<key>default</key><string>Z X C V B N M</string>
+			<key>noAutoCorrect</key><true/>
+			<key>autoCaps</key><string>None</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSGroupCell</string>
+			<key>label</key><string>123</string>
+			<key>footerText</key><string>$ stands for your region's currency key.</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>Row 1</string>
+			<key>key</key><string>KeyRowNumbers1</string>
+			<key>default</key><string>1 2 3 4 5 6 7 8 9 0</string>
+			<key>noAutoCorrect</key><true/>
+			<key>autoCaps</key><string>None</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>Row 2</string>
+			<key>key</key><string>KeyRowNumbers2</string>
+			<key>default</key><string>- / : ; ( ) $ &amp; @ "</string>
+			<key>noAutoCorrect</key><true/>
+			<key>autoCaps</key><string>None</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>Row 3</string>
+			<key>key</key><string>KeyRowNumbers3</string>
+			<key>default</key><string>. , ? ! '</string>
+			<key>noAutoCorrect</key><true/>
+			<key>autoCaps</key><string>None</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSGroupCell</string>
+			<key>label</key><string>#+=</string>
+			<key>footerText</key><string>€ £ ¥ stand for your region's other currency keys.</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>Row 1</string>
+			<key>key</key><string>KeyRowSymbols1</string>
+			<key>default</key><string>[ ] { } # % ^ * + =</string>
+			<key>noAutoCorrect</key><true/>
+			<key>autoCaps</key><string>None</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>Row 2</string>
+			<key>key</key><string>KeyRowSymbols2</string>
+			<key>default</key><string>_ \ | ~ &lt; &gt; € £ ¥ •</string>
+			<key>noAutoCorrect</key><true/>
+			<key>autoCaps</key><string>None</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>Row 3</string>
+			<key>key</key><string>KeyRowSymbols3</string>
+			<key>default</key><string>. , ? ! '</string>
+			<key>noAutoCorrect</key><true/>
+			<key>autoCaps</key><string>None</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSGroupCell</string>
+			<key>label</key><string>Switch Keys</string>
+			<key>footerText</key><string>Rename the keys that switch between letters (ABC), numbers (123) and symbols (#+=). The 123 label is used on letters and on the #+= page. Up to 5 characters; blank keeps Apple's label.</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>123 Key</string>
+			<key>key</key><string>Label123</string>
+			<key>placeholder</key><string>123</string>
+			<key>noAutoCorrect</key><true/>
+			<key>autoCaps</key><string>None</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>ABC Key</string>
+			<key>key</key><string>LabelABC</string>
+			<key>placeholder</key><string>ABC</string>
+			<key>noAutoCorrect</key><true/>
+			<key>autoCaps</key><string>None</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSEditTextCell</string>
+			<key>label</key><string>#+= Key</string>
+			<key>key</key><string>LabelSymbols</string>
+			<key>placeholder</key><string>#+=</string>
+			<key>noAutoCorrect</key><true/>
+			<key>autoCaps</key><string>None</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSGroupCell</string>
+		</dict>
+		<dict>
+			<key>cell</key><string>PSButtonCell</string>
+			<key>label</key><string>Reset Keys</string>
+			<key>action</key><string>resetKeys:</string>
+		</dict>
+	</array>
+</dict>
+</plist>

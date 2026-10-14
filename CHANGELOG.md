@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.0
+
+- New **Keys** page: change any key on the letters, Shift / Caps Lock, 123 and #+= pages. Add, remove, reorder or retype keys, up to 12 per row. Shift rows follow your letters in capitals unless you set them. Keys kept from Apple's row keep their long-press accents and your region's currency signs. Applies to the US English (QWERTY) layout in every size and keyboard type, and in landscape even with Show in Landscape off; other languages and the email and web-address number pages keep their own keys. The page has its own Preview field.
+- New **Setups** page: save your settings under a name (up to 50) and switch between them. Share a setup as a text file or as text to paste; friends import it from the clipboard or Files, see what's in it, and apply it when they choose. Excluded Apps stay out of shared setups unless you include them.
+- Automatic backups: TopRow saves your settings before Reset to Defaults, Reset Keys or applying a setup, and keeps the 3 newest, so each of those can be undone.
+- Settings pages refresh when TopRow's settings change in another app (Settings or TweakSettings).
+- Rename the #+= key too. The 123 and ABC labels moved to the Keys page.
+- Settings: Keys sits right under Enabled, with a NEW badge until you open it, and the Extra Row section is now called Top Row.
+- Fix: in landscape on some iPhones (the 15 Pro among them), an extra row with fewer than 10 keys was stretched past the right edge, hiding its last keys.
+- Fix: NewTerm froze on launch at some keyboard heights, including the default Key Height on some iPhones.
+
 ## 1.0.1
 
 - Fix apps (Settings, Sileo and others) hanging on launch on some setups: TopRow no longer calls UIKit while the app is still loading.

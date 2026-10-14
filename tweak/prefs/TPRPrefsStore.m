@@ -1,7 +1,8 @@
 #import "TPRPrefsStore.h"
 #import "../TPRPaths.h"
 
-static NSString *const kReloadNotification = @"dev.rtrdd.toprow/reload";
+NSString *const TPRPrefsReloadNotification = @"dev.rtrdd.toprow/reload";
+static NSData *lastWritten;
 
 // Coalesced: a slider drag writes many values; the keyboard reloads once it settles.
 static void PostReload(void) {
@@ -10,8 +11,16 @@ static void PostReload(void) {
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.35 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         if (mine != pending) return;
         CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(),
-                                             (__bridge CFStringRef)kReloadNotification, NULL, NULL, true);
+                                             (__bridge CFStringRef)TPRPrefsReloadNotification, NULL, NULL, true);
     });
+}
+
+NSData *TPRPrefsFileData(void) {
+    return [NSData dataWithContentsOfFile:TPRPrefsFile] ?: [NSData data];
+}
+
+NSData *TPRPrefsLastWrittenData(void) {
+    return lastWritten;
 }
 
 NSDictionary *TPRPrefsRead(void) {
@@ -20,19 +29,36 @@ NSDictionary *TPRPrefsRead(void) {
     return [prefs isKindOfClass:[NSDictionary class]] ? prefs : @{};
 }
 
+static void Write(NSDictionary *prefs) {
+    NSData *data = [NSPropertyListSerialization dataWithPropertyList:prefs format:NSPropertyListXMLFormat_v1_0
+                                                             options:0 error:NULL];
+    if ([data writeToFile:TPRPrefsFile atomically:YES]) {
+        lastWritten = data;
+        PostReload();
+    } else NSLog(@"[TopRow] failed to write %@", TPRPrefsFile);
+}
+
 void TPRPrefsSet(NSString *key, id value) {
     if (!key) return;
     NSMutableDictionary *prefs = [TPRPrefsRead() mutableCopy];
     if (value) prefs[key] = value;
     else [prefs removeObjectForKey:key];
-    NSData *data = [NSPropertyListSerialization dataWithPropertyList:prefs format:NSPropertyListXMLFormat_v1_0
-                                                             options:0 error:NULL];
-    if ([data writeToFile:TPRPrefsFile atomically:YES]) PostReload();
-    else NSLog(@"[TopRow] failed to write %@", TPRPrefsFile);
+    Write(prefs);
+}
+
+void TPRPrefsRemove(NSArray<NSString *> *keys) {
+    NSMutableDictionary *prefs = [TPRPrefsRead() mutableCopy];
+    [prefs removeObjectsForKeys:keys];
+    Write(prefs);
+}
+
+void TPRPrefsReplace(NSDictionary *prefs) {
+    Write(prefs ?: @{});
 }
 
 void TPRPrefsReset(void) {
     [[NSFileManager defaultManager] removeItemAtPath:TPRPrefsFile error:NULL];
+    lastWritten = [NSData data];
     PostReload();
 }
 
@@ -51,6 +77,16 @@ NSString *TPRPrefsRowProblem(NSString *text) {
         count++;
     }
     return count > 10 ? @"A row can have at most 10 keys." : nil;
+}
+
+NSString *TPRPrefsKeyRowProblem(NSString *text) {
+    NSUInteger count = 0;
+    for (NSString *part in [text componentsSeparatedByCharactersInSet:NSCharacterSet.whitespaceCharacterSet]) {
+        if (!part.length) continue;
+        if (TPRPrefsCharacterCount(part) > 8) return [NSString stringWithFormat:@"\"%@\" is longer than 8 characters.", part];
+        count++;
+    }
+    return count > 12 ? @"A row can have at most 12 keys." : nil;
 }
 
 NSRange TPRPrefsSizeRange(NSString *key) {

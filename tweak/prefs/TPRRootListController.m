@@ -1,5 +1,7 @@
 #import "TPRBaseListController.h"
 #import "TPRPrefsStore.h"
+#import "TPRSetups.h"
+#import "TPRShareSheet.h"
 #import "../TPRPaths.h"
 #import <dlfcn.h>
 #import <mach-o/dyld.h>
@@ -9,60 +11,46 @@
 @interface TPRRootListController : TPRBaseListController
 @end
 
-// Share sheet item for the diagnostics report: a .txt file (Save to Files, AirDrop, Mail),
-// except Copy, which gets the report as plain text.
-@interface TPRDiagnosticsItem : NSObject <UIActivityItemSource>
-@property (nonatomic, copy) NSString *text;
-@property (nonatomic, copy) NSURL *file;
-@end
-
-@implementation TPRDiagnosticsItem
-
-- (id)activityViewControllerPlaceholderItem:(UIActivityViewController *)controller {
-    return self.file;
-}
-
-- (id)activityViewController:(UIActivityViewController *)controller itemForActivityType:(UIActivityType)type {
-    return [type isEqualToString:UIActivityTypeCopyToPasteboard] ? self.text : self.file;
-}
-
-- (NSString *)activityViewController:(UIActivityViewController *)controller subjectForActivityType:(UIActivityType)type {
-    return @"TopRow diagnostics";
-}
-
-@end
-
 @implementation TPRRootListController
-
-// The preview field is scratch space: never stored.
-static BOOL IsPreview(PSSpecifier *specifier) {
-    return [specifier.properties[@"key"] isEqual:@"Preview"];
-}
 
 - (NSArray *)specifiers {
     if (!_specifiers) _specifiers = [self loadSpecifiersFromPlistName:@"Root" target:self];
     return _specifiers;
 }
 
+// "NEW" next to Keys until that page has been opened once.
+static const NSInteger kNewBadgeTag = 0x7470726e;
+
+static UIView *NewBadge(void) {
+    UILabel *label = [UILabel new];
+    label.text = @"NEW";
+    label.font = [UIFont systemFontOfSize:12 weight:UIFontWeightBold];
+    label.textColor = UIColor.whiteColor;
+    label.textAlignment = NSTextAlignmentCenter;
+    label.backgroundColor = UIColor.systemBlueColor;
+    [label sizeToFit];
+    label.frame = CGRectMake(0, 0, label.bounds.size.width + 14, 20);
+    label.layer.cornerRadius = 10;
+    label.layer.masksToBounds = YES;
+    UIImageSymbolConfiguration *config = [UIImageSymbolConfiguration configurationWithPointSize:14 weight:UIImageSymbolWeightSemibold];
+    UIImageView *chevron = [[UIImageView alloc] initWithImage:[UIImage systemImageNamed:@"chevron.right" withConfiguration:config]];
+    chevron.tintColor = UIColor.tertiaryLabelColor;
+    CGSize c = chevron.bounds.size;
+    UIView *view = [[UIView alloc] initWithFrame:CGRectMake(0, 0, label.bounds.size.width + 10 + c.width, 20)];
+    chevron.frame = CGRectMake(view.bounds.size.width - c.width, (20 - c.height) / 2, c.width, c.height);
+    [view addSubview:label];
+    [view addSubview:chevron];
+    view.tag = kNewBadgeTag;
+    return view;
+}
+
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     UITableViewCell *cell = [super tableView:tableView cellForRowAtIndexPath:indexPath];
-    // Behave like a normal text field so "Lowercase Row When Auto-Capitalized" can be previewed.
     PSSpecifier *specifier = [self specifierAtIndexPath:indexPath];
-    if (IsPreview(specifier) && [cell respondsToSelector:@selector(textField)]) {
-        UITextField *field = [cell performSelector:@selector(textField)];
-        field.autocapitalizationType = UITextAutocapitalizationTypeSentences;
-        field.autocorrectionType = UITextAutocorrectionTypeDefault;
-    }
+    BOOL badge = [specifier.name isEqualToString:@"Keys"] && !TPRSetupsFlag(@"KeysPageSeen");
+    if (badge) cell.accessoryView = NewBadge();
+    else if (cell.accessoryView.tag == kNewBadgeTag) cell.accessoryView = nil;
     return cell;
-}
-
-- (id)readPreferenceValue:(PSSpecifier *)specifier {
-    return IsPreview(specifier) ? nil : [super readPreferenceValue:specifier];
-}
-
-- (void)setPreferenceValue:(id)value specifier:(PSSpecifier *)specifier {
-    if (IsPreview(specifier)) return;
-    [super setPreferenceValue:value specifier:specifier];
 }
 
 // Last `lines` lines of the shared TopRow log (and its rotated predecessor).
@@ -237,37 +225,21 @@ static NSString *TopRowOnStack(NSString *ips, NSSet<NSString *> *ourUUIDs, NSStr
     [report appendString:@"\n\n"];
     [report appendString:CrashReports()];
 
-    NSFileManager *files = NSFileManager.defaultManager;
-    for (NSString *old in [files contentsOfDirectoryAtPath:NSTemporaryDirectory() error:NULL])
-        if ([old hasPrefix:@"TopRow-Diagnostics-"])
-            [files removeItemAtPath:[NSTemporaryDirectory() stringByAppendingPathComponent:old] error:NULL];
     NSDateFormatter *stamp = [NSDateFormatter new];
     stamp.locale = [NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"];
     stamp.dateFormat = @"yyyy-MM-dd-HHmmss";
     NSString *name = [NSString stringWithFormat:@"TopRow-Diagnostics-%@.txt", [stamp stringFromDate:NSDate.date]];
-    NSURL *file = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:name]];
-    NSError *error;
-    if (![report writeToURL:file atomically:YES encoding:NSUTF8StringEncoding error:&error]) {
-        [self showMessage:error.localizedDescription title:@"Couldn't Save Diagnostics"];
-        return;
-    }
-    TPRDiagnosticsItem *item = [TPRDiagnosticsItem new];
-    item.text = report;
-    item.file = file;
-    UIActivityViewController *share = [[UIActivityViewController alloc] initWithActivityItems:@[ item ]
-                                                                        applicationActivities:nil];
-    UIView *anchor = [self cachedCellForSpecifier:specifier] ?: self.view;   // popover anchor (iPad)
-    share.popoverPresentationController.sourceView = anchor;
-    share.popoverPresentationController.sourceRect = anchor.bounds;
-    [self presentViewController:share animated:YES completion:nil];
+    NSString *problem = TPRShareText(self, [self cachedCellForSpecifier:specifier], report, name, @"TopRow diagnostics");
+    if (problem) [self showMessage:problem title:@"Couldn't Save Diagnostics"];
 }
 
 - (void)resetDefaults:(PSSpecifier *)specifier {
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Reset TopRow?"
-                                                                   message:@"Every TopRow setting goes back to its default."
+                                                                   message:@"Every TopRow setting goes back to its default. Your current settings are saved in Setups first."
                                                             preferredStyle:UIAlertControllerStyleAlert];
     [alert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
     [alert addAction:[UIAlertAction actionWithTitle:@"Reset" style:UIAlertActionStyleDestructive handler:^(UIAlertAction *a) {
+        TPRSetupsBackUp(@"Before Reset to Defaults");
         TPRPrefsReset();
         [self reloadSpecifiers];
     }]];

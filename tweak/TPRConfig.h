@@ -1,4 +1,5 @@
 #import <Foundation/Foundation.h>
+#import "TPRKeyRows.h"
 
 typedef NS_ENUM(NSInteger, TPRPlaneKind) {
     TPRPlaneLowercase,   // small letters
@@ -30,6 +31,8 @@ extern NSString *const TPRReloadNotification;
 // Custom labels for the keyplane-switch key ("123" on letters, "ABC" on 123/#+=); nil = Apple's.
 @property (nonatomic, copy, readonly) NSString *label123;
 @property (nonatomic, copy, readonly) NSString *labelABC;
+// Custom label for the "#+=" key on 123; nil = Apple's. (label123 also renames "123" on #+=.)
+@property (nonatomic, copy, readonly) NSString *labelSymbols;
 // Changes whenever anything that affects the patched keyboard changes.
 @property (nonatomic, copy, readonly) NSString *fingerprint;
 
@@ -37,6 +40,10 @@ extern NSString *const TPRReloadNotification;
 - (NSArray<NSString *> *)rowForPlane:(TPRPlaneKind)kind;
 // Same, for landscape keyboards: the landscape row if one is set, else the portrait row.
 - (NSArray<NSString *> *)rowForPlane:(TPRPlaneKind)kind landscape:(BOOL)landscape;
+// Keys for row `row` (0-2) of that keyplane, or nil to keep Apple's row. Shift / Caps Lock
+// rows follow the letters rows in capitals unless set themselves.
+- (NSArray<NSString *> *)keysForPlane:(TPRKeyPlane)plane row:(NSUInteger)row;
+@property (nonatomic, readonly) BOOL hasCustomKeys;
 
 + (instancetype)current;
 // Re-reads the prefs file; returns YES if the fingerprint changed.

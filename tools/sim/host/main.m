@@ -396,6 +396,211 @@ static void TapLayoutPoint(UIView *layout, CGPoint p) {
             Out(@"  plane %@ alpha=%d props=%@", Call(plane, @"name"), alpha,
                 [[Call(plane, @"properties") description] stringByReplacingOccurrencesOfString:@"\n" withString:@" "]);
         }
+    } else if ([verb isEqualToString:@"kbinventory"]) {
+        // kbinventory <names file> <KBLayouts_*.dat> ... (all in tmp): load every candidate name from each data file
+        // (first file that has it wins); each keyplane's flags and its key layouts' rows (key name,
+        // display, represented, display/interaction type) go to <tmp>/tpr-inventory.json
+        NSArray *args = [arg componentsSeparatedByString:@" "];
+        NSArray *names = [[NSString stringWithContentsOfFile:TmpPath(args[0]) encoding:NSUTF8StringEncoding error:nil]
+                          componentsSeparatedByString:@"\n"];
+        NSMutableArray *sers = [NSMutableArray array];
+        for (NSString *file in [args subarrayWithRange:NSMakeRange(1, args.count - 1)]) {
+            id ser = [NSClassFromString(@"TUIKBGraphSerialization") new];
+            ((void (*)(id, SEL, id))objc_msgSend)(ser, NSSelectorFromString(@"setSerializedData:"),
+                [NSData dataWithContentsOfFile:TmpPath(file) options:NSDataReadingMappedIfSafe error:nil]);
+            [sers addObject:ser];
+        }
+        NSMutableDictionary *all = [NSMutableDictionary dictionary];
+        SEL kfn = NSSelectorFromString(@"keyboardForName:");
+        for (NSString *name in names) {
+            if (!name.length) continue;
+            id kb = nil;
+            for (id ser in sers) {
+                @try { kb = ((id (*)(id, SEL, id))objc_msgSend)(ser, kfn, name); } @catch (NSException *e) { kb = nil; }
+                if (kb) break;
+            }
+            if (!kb) continue;
+            CGRect kf = CGRectZero;
+            ShapeFrame(Call(kb, @"properties")[@"KBshape"], @"frame", &kf);
+            NSMutableArray *planes = [NSMutableArray array];
+            for (id plane in Call(kb, @"subtrees")) {
+                int ptype = ((int (*)(id, SEL))objc_msgSend)(plane, NSSelectorFromString(@"type"));
+                if (ptype != 2) continue;
+                BOOL alpha = ((BOOL (*)(id, SEL))objc_msgSend)(plane, NSSelectorFromString(@"isAlphabeticPlane"));
+                BOOL shift = ((BOOL (*)(id, SEL))objc_msgSend)(plane, NSSelectorFromString(@"isShiftKeyplane"));
+                NSMutableArray *layouts = [NSMutableArray array];
+                for (id layout in Call(plane, @"subtrees")) {
+                    if (((int (*)(id, SEL))objc_msgSend)(layout, NSSelectorFromString(@"type")) != 3) continue;
+                    NSMutableArray *rows = [NSMutableArray array];
+                    for (id set in Call(layout, @"subtrees")) {
+                        if (((int (*)(id, SEL))objc_msgSend)(set, NSSelectorFromString(@"type")) != 4) continue;
+                        for (id row in Call(set, @"subtrees")) {
+                            NSMutableArray *keys = [NSMutableArray array];
+                            for (id key in Call(row, @"subtrees")) {
+                                NSDictionary *p = Call(key, @"properties");
+                                [keys addObject:@[ Call(key, @"name") ?: @"", p[@"KBdisplayString"] ?: @"", p[@"KBrepresentedString"] ?: @"",
+                                                   p[@"KBdisplayType"] ?: @-1, p[@"KBinteractionType"] ?: @-1 ]];
+                            }
+                            [rows addObject:keys];
+                        }
+                    }
+                    [layouts addObject:@{ @"name": Call(layout, @"name") ?: @"", @"rows": rows }];
+                }
+                [planes addObject:@{ @"name": Call(plane, @"name") ?: @"", @"alpha": @(alpha), @"shift": @(shift),
+                                     @"props": [[Call(plane, @"properties") description] stringByReplacingOccurrencesOfString:@"\n" withString:@" "] ?: @"",
+                                     @"layouts": layouts }];
+            }
+            all[name] = @{ @"frame": NSStringFromCGRect(kf), @"planes": planes, @"loadedName": Call(kb, @"name") ?: @"" };
+        }
+        NSData *json = [NSJSONSerialization dataWithJSONObject:all options:0 error:nil];
+        NSString *path = TmpPath(@"tpr-inventory.json");
+        [json writeToFile:path atomically:YES];
+        Out(@"kbinventory -> %@ (%lu keyboards)", path, (unsigned long)all.count);
+    } else if ([verb isEqualToString:@"prefs"]) {
+        // prefs <controller class>: present a TopRow Settings pane (TopRowPrefs.bundle, see tpr-sim.sh build)
+        static NSBundle *bundle;
+        if (!bundle) {
+            bundle = [NSBundle bundleWithPath:[NSString stringWithUTF8String:getenv("TPR_PREFS_BUNDLE") ?: ""]];
+            if (![bundle load]) { Out(@"prefs: bundle didn't load (%@)", bundle.bundlePath); return; }
+            // Panes find their plists through -bundle, which Settings sets from the specifier.
+            Method m = class_getInstanceMethod(NSClassFromString(@"PSListController"), NSSelectorFromString(@"bundle"));
+            method_setImplementation(m, imp_implementationWithBlock(^id(id me) { return bundle; }));
+        }
+        if (self.presentedViewController) [self dismissViewControllerAnimated:NO completion:nil];
+        UIViewController *pane = [NSClassFromString(arg) new];
+        if (!pane) { Out(@"prefs: no class %@", arg); return; }
+        UINavigationController *nav = [[UINavigationController alloc] initWithRootViewController:pane];
+        nav.modalPresentationStyle = UIModalPresentationFullScreen;
+        [self presentViewController:nav animated:NO completion:nil];
+        [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.8]];
+        Out(@"prefs %@ presented", arg);
+    } else if ([verb isEqualToString:@"prefsread"] || [verb isEqualToString:@"prefsset"]) {
+        // prefsread: every keyed specifier's value as the pane reads it
+        // prefsset <key> <value...>: what typing <value> into that field does
+        UIViewController *pane = ((UINavigationController *)self.presentedViewController).topViewController;
+        NSString *key = [arg componentsSeparatedByString:@" "].firstObject;
+        NSString *value = arg.length > key.length ? [arg substringFromIndex:key.length + 1] : @"";
+        NSMutableArray *parts = [NSMutableArray array];
+        for (id spec in Call(pane, @"specifiers")) {
+            NSString *k = ((NSDictionary *)Call(spec, @"properties"))[@"key"];
+            if (!k) continue;
+            if ([verb isEqualToString:@"prefsset"]) {
+                if (![k isEqualToString:key]) continue;
+                ((void (*)(id, SEL, id, id))objc_msgSend)(pane, NSSelectorFromString(@"setPreferenceValue:specifier:"), value, spec);
+                [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.6]];
+                Out(@"prefsset %@ = \"%@\"", k, value);
+                return;
+            }
+            id v = ((id (*)(id, SEL, id))objc_msgSend)(pane, NSSelectorFromString(@"readPreferenceValue:"), spec);
+            [parts addObject:[NSString stringWithFormat:@"%@=\"%@\"", k, v ?: @""]];
+        }
+        if ([verb isEqualToString:@"prefsset"]) Out(@"prefsset: no specifier %@", key);
+        else Out(@"prefsread %@", [parts componentsJoinedByString:@" | "]);
+    } else if ([verb isEqualToString:@"prefslist"]) {
+        // prefslist: the top pane's rows as "[group] name = value" (title-value rows use their getter)
+        UIViewController *pane = ((UINavigationController *)self.presentedViewController).topViewController;
+        NSMutableArray *lines = [NSMutableArray arrayWithObject:[NSString stringWithFormat:@"pane %@ \"%@\"", pane.class, pane.title]];
+        for (id spec in Call(pane, @"specifiers")) {
+            NSDictionary *props = Call(spec, @"properties");
+            NSInteger type = ((NSInteger (*)(id, SEL))objc_msgSend)(spec, NSSelectorFromString(@"cellType"));
+            NSString *name = Call(spec, @"name") ?: @"";
+            if (type == 0) { [lines addObject:[NSString stringWithFormat:@"[%@] %@", name, props[@"footerText"] ?: @""]]; continue; }
+            id value = props[@"key"] ? ((id (*)(id, SEL, id))objc_msgSend)(pane, NSSelectorFromString(@"readPreferenceValue:"), spec)
+                                     : Call(spec, @"performGetter");
+            [lines addObject:[NSString stringWithFormat:@"  %@%@", name, value ? [NSString stringWithFormat:@" = %@", value] : @""]];
+        }
+        Out(@"%@", [lines componentsJoinedByString:@"\n"]);
+    } else if ([verb isEqualToString:@"prefstap"]) {
+        // prefstap <row name>: what tapping that row does (push a page, run a button, open a setup's actions)
+        UINavigationController *nav = (UINavigationController *)self.presentedViewController;
+        UIViewController *pane = nav.topViewController;
+        for (id spec in Call(pane, @"specifiers")) {
+            if (![Call(spec, @"name") isEqual:arg]) continue;
+            NSIndexPath *ip = ((id (*)(id, SEL, id))objc_msgSend)(pane, NSSelectorFromString(@"indexPathForSpecifier:"), spec);
+            UITableView *table = Call(pane, @"table");
+            ((void (*)(id, SEL, id, id))objc_msgSend)(pane, @selector(tableView:didSelectRowAtIndexPath:), table, ip);
+            [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1.0]];
+            Out(@"prefstap %@ -> %@", arg, nav.topViewController.class);
+            return;
+        }
+        Out(@"prefstap: no row %@", arg);
+    } else if ([verb isEqualToString:@"prefsback"]) {
+        [(UINavigationController *)self.presentedViewController popViewControllerAnimated:NO];
+        [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.6]];
+        Out(@"prefsback -> %@", ((UINavigationController *)self.presentedViewController).topViewController.class);
+    } else if ([verb isEqualToString:@"prefscall"]) {
+        // prefscall <selector> [string argument]: call the top pane
+        UIViewController *pane = ((UINavigationController *)self.presentedViewController).topViewController;
+        NSRange sp = [arg rangeOfString:@" "];
+        NSString *sel = sp.location == NSNotFound ? arg : [arg substringToIndex:sp.location];
+        NSString *value = sp.location == NSNotFound ? nil : [[arg substringFromIndex:sp.location + 1] stringByReplacingOccurrencesOfString:@"\\n" withString:@"\n"];
+        if (![pane respondsToSelector:NSSelectorFromString(sel)]) { Out(@"prefscall: %@ doesn't respond to %@", pane.class, sel); return; }
+        ((void (*)(id, SEL, id))objc_msgSend)(pane, NSSelectorFromString(sel), value);
+        [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1.0]];
+        Out(@"prefscall %@ done", sel);
+    } else if ([verb isEqualToString:@"alert"] || [verb isEqualToString:@"alerttap"]) {
+        // alert: the alert on screen; alerttap <button>[|<text for its field>]: fill in, then press that button
+        UIViewController *top = self;
+        while (top.presentedViewController) top = top.presentedViewController;
+        if (![top isKindOfClass:[UIAlertController class]]) { Out(@"alert: none (top is %@)", top.class); return; }
+        UIAlertController *alert = (UIAlertController *)top;
+        if ([verb isEqualToString:@"alert"]) {
+            Out(@"alert \"%@\" message \"%@\" buttons [%@] fields [%@]", alert.title, alert.message,
+                [[alert.actions valueForKey:@"title"] componentsJoinedByString:@", "], [[alert.textFields valueForKey:@"text"] componentsJoinedByString:@", "]);
+            return;
+        }
+        NSArray *parts = [arg componentsSeparatedByString:@"|"];
+        if (parts.count > 1) alert.textFields.firstObject.text = parts[1];
+        for (UIAlertAction *action in alert.actions) {
+            if (![action.title isEqualToString:parts[0]]) continue;
+            void (^handler)(UIAlertAction *) = [action valueForKey:@"handler"];
+            [alert.presentingViewController dismissViewControllerAnimated:NO completion:^{ if (handler) handler(action); }];
+            [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1.2]];
+            Out(@"alerttap %@ done", parts[0]);
+            return;
+        }
+        Out(@"alerttap: no button %@", parts[0]);
+    } else if ([verb isEqualToString:@"dismisstop"]) {
+        // dismisstop: close whatever the pane presented (share sheet, file picker, alert)
+        UIViewController *top = self;
+        while (top.presentedViewController) top = top.presentedViewController;
+        if (top == self.presentedViewController) { Out(@"dismisstop: nothing over the pane"); return; }
+        [top.presentingViewController dismissViewControllerAnimated:NO completion:nil];
+        [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.8]];
+        Out(@"dismissed %@", top.class);
+    } else if ([verb isEqualToString:@"pbset"]) {
+        UIPasteboard.generalPasteboard.string = [arg stringByReplacingOccurrencesOfString:@"\\n" withString:@"\n"];
+        Out(@"pbset %lu chars", (unsigned long)UIPasteboard.generalPasteboard.string.length);
+    } else if ([verb isEqualToString:@"pbget"]) {
+        Out(@"pb: %@", UIPasteboard.generalPasteboard.string);
+    } else if ([verb isEqualToString:@"prefsclose"]) {
+        [self dismissViewControllerAnimated:NO completion:nil];
+        [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.5]];
+        [self.field becomeFirstResponder];
+        Out(@"prefs closed");
+    } else if ([verb isEqualToString:@"imp"]) {
+        // imp <Class> <selector>: implementation address as an offset into its image (for disassembly)
+        NSArray *p = [arg componentsSeparatedByString:@" "];
+        Class cls = NSClassFromString(p[0]);
+        Method m = class_getInstanceMethod(cls, NSSelectorFromString(p[1])) ?: class_getClassMethod(cls, NSSelectorFromString(p[1]));
+        IMP imp = m ? method_getImplementation(m) : NULL;
+        Dl_info info = {0};
+        if (imp) dladdr((void *)imp, &info);
+        Out(@"imp %@ -> %s +0x%lx", arg, info.dli_fname ?: "?", imp ? (unsigned long)((char *)imp - (char *)info.dli_fbase) : 0UL);
+    } else if ([verb isEqualToString:@"kbroot"]) {
+        // kbroot <KBLayouts_*.dat in tmp>: what the serializer finds at offset 0 (its root index), to tmp/tpr-root.txt
+        id ser = [NSClassFromString(@"TUIKBGraphSerialization") new];
+        ((void (*)(id, SEL, id))objc_msgSend)(ser, NSSelectorFromString(@"setSerializedData:"),
+            [NSData dataWithContentsOfFile:TmpPath(arg) options:NSDataReadingMappedIfSafe error:nil]);
+        NSMutableString *s = [NSMutableString string];
+        id offsets = Call(ser, @"keyboardOffsets");
+        [s appendFormat:@"keyboardOffsets %@ count %lu\n", NSStringFromClass([offsets class]), (unsigned long)[offsets count]];
+        if ([offsets isKindOfClass:[NSDictionary class]])
+            for (id k in [[offsets allKeys] sortedArrayUsingSelector:@selector(compare:)]) [s appendFormat:@"K %@ = %@\n", k, offsets[k]];
+        [s appendFormat:@"statistics %@\n", Call(ser, @"statistics")];
+        [s appendFormat:@"cache %@\n", NSStringFromClass([Call(ser, @"deserializationCache") class])];
+        [s writeToFile:TmpPath(@"tpr-root.txt") atomically:YES encoding:NSUTF8StringEncoding error:nil];
+        Out(@"kbroot %@ -> %lu bytes", arg, (unsigned long)s.length);
     } else if ([verb isEqualToString:@"forcerebuild"]) {
         ((void (*)(id, SEL, BOOL, BOOL))objc_msgSend)(impl, NSSelectorFromString(@"setInHardwareKeyboardMode:forceRebuild:"), NO, YES);
         [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1.0]];

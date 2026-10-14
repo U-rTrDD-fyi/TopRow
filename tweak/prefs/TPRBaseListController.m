@@ -1,17 +1,94 @@
 #import "TPRBaseListController.h"
 #import "TPRPrefsStore.h"
+#import "TPRSetups.h"
 #import "../TPRPaths.h"
 #import <crt_externs.h>
 #import <spawn.h>
 #import <sys/wait.h>
 
-@implementation TPRBaseListController
+static NSString *const kSettingsChanged = @"TPRSettingsChanged";
+
+// Darwin notifications arrive for every write, this process's own included; pages sort it out.
+static void OnDarwinChange(CFNotificationCenterRef center, void *observer, CFNotificationName name,
+                           const void *object, CFDictionaryRef info) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [NSNotificationCenter.defaultCenter postNotificationName:kSettingsChanged object:nil];
+    });
+}
+
+@implementation TPRBaseListController {
+    NSData *_shownPrefs, *_shownSetups;   // the files as they were when the rows were last loaded
+}
 
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Respring"
                                                                               style:UIBarButtonItemStylePlain
                                                                              target:self action:@selector(confirmRespring)];
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        CFNotificationCenterRef darwin = CFNotificationCenterGetDarwinNotifyCenter();
+        for (NSString *name in @[ TPRPrefsReloadNotification, TPRSetupsChangedNotification ])
+            CFNotificationCenterAddObserver(darwin, NULL, OnDarwinChange, (__bridge CFStringRef)name, NULL,
+                                            CFNotificationSuspensionBehaviorDeliverImmediately);
+    });
+    NSNotificationCenter *center = NSNotificationCenter.defaultCenter;
+    [center addObserver:self selector:@selector(settingsChanged) name:kSettingsChanged object:nil];
+    [center addObserver:self selector:@selector(settingsChanged) name:UIApplicationWillEnterForegroundNotification object:nil];
+    [self noteShown];
+}
+
+// ---- refreshing ------------------------------------------------------------------
+
+- (void)noteShown {
+    _shownPrefs = TPRPrefsFileData();
+    _shownSetups = TPRSetupsFileData();
+}
+
+- (void)reloadSpecifiers {
+    [super reloadSpecifiers];
+    [self noteShown];
+}
+
+- (BOOL)isEditingText {
+    for (UITableViewCell *cell in self.table.visibleCells)
+        if ([cell respondsToSelector:@selector(textField)] && [[cell performSelector:@selector(textField)] isFirstResponder])
+            return YES;
+    return NO;
+}
+
+// Coming back to a page (from one of its own sub-pages, or another app): show what's stored now.
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    if (![TPRPrefsFileData() isEqualToData:_shownPrefs] || ![TPRSetupsFileData() isEqualToData:_shownSetups])
+        [self reloadSpecifiers];
+}
+
+// While a page is on screen, only another app's change refreshes it: reloading after its own
+// writes would yank a slider or text field out from under the finger.
+- (void)settingsChanged {
+    if (!self.isViewLoaded || !self.view.window || self.isEditingText) return;
+    NSData *prefs = TPRPrefsFileData(), *setups = TPRSetupsFileData();
+    BOOL prefsElsewhere = ![prefs isEqualToData:_shownPrefs] && ![prefs isEqualToData:TPRPrefsLastWrittenData()];
+    BOOL setupsElsewhere = ![setups isEqualToData:_shownSetups] && ![setups isEqualToData:TPRSetupsLastWrittenData()];
+    if (prefsElsewhere || setupsElsewhere) [self reloadSpecifiers];
+}
+
+// ---- values ----------------------------------------------------------------------
+
+static BOOL IsPreview(PSSpecifier *specifier) {
+    return [specifier.properties[@"key"] isEqual:@"Preview"];
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    UITableViewCell *cell = [super tableView:tableView cellForRowAtIndexPath:indexPath];
+    // Behave like a normal text field so "Lowercase Row When Auto-Capitalized" can be previewed.
+    if (IsPreview([self specifierAtIndexPath:indexPath]) && [cell respondsToSelector:@selector(textField)]) {
+        UITextField *field = [cell performSelector:@selector(textField)];
+        field.autocapitalizationType = UITextAutocapitalizationTypeSentences;
+        field.autocorrectionType = UITextAutocorrectionTypeDefault;
+    }
+    return cell;
 }
 
 - (void)showMessage:(NSString *)message title:(NSString *)title {
@@ -22,11 +99,13 @@
 }
 
 - (id)readPreferenceValue:(PSSpecifier *)specifier {
+    if (IsPreview(specifier)) return nil;
     id value = TPRPrefsRead()[specifier.properties[@"key"]];
     return value ?: specifier.properties[@"default"];
 }
 
 - (void)setPreferenceValue:(id)value specifier:(PSSpecifier *)specifier {
+    if (IsPreview(specifier)) return;
     NSString *key = specifier.properties[@"key"];
     NSString *problem = nil;
     if ([key hasSuffix:@"Row"]) problem = TPRPrefsRowProblem(value);

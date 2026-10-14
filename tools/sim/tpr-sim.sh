@@ -40,6 +40,17 @@ build)
     simcc -dynamiclib -DTPR_SIMULATOR=1 -framework UIKit -framework Foundation -framework CoreGraphics \
         -install_name @rpath/TopRow.dylib -o "$BUILD/TopRow.dylib" "$ROOT"/tweak/*.m
     codesign -s - -f "$BUILD/TopRow.dylib" >/dev/null 2>&1
+    # Settings panes (not the AltList one), loaded into TPRHost by its "prefs" command.
+    PF="$(xcrun simctl list runtimes -j | python3 -c 'import json,sys;print([r["bundlePath"] for r in json.load(sys.stdin)["runtimes"] if r["version"].startswith("18.4")][0])')/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks"
+    P="$ROOT/tweak/prefs"
+    rm -rf "$BUILD/TopRowPrefs.bundle" "$BUILD/include" && mkdir -p "$BUILD/TopRowPrefs.bundle" "$BUILD/include"
+    ln -s "$THEOS/vendor/include/Preferences" "$BUILD/include/Preferences"   # only these: the rest shadows SDK headers
+    simcc -bundle -DTPR_SIMULATOR=1 -DTPR_VERSION=\"sim\" -I"$BUILD/include" "$PF/Preferences.framework/Preferences" -framework UIKit -framework CoreGraphics \
+        -framework UniformTypeIdentifiers -o "$BUILD/TopRowPrefs.bundle/TopRowPrefs" "$P/TPRPrefsStore.m" "$P/TPRSetups.m" "$P/TPRShareSheet.m" \
+        "$P/TPRBaseListController.m" "$P/TPRRootListController.m" "$P/TPRKeysController.m" "$P/TPRKeyboardTypesController.m" \
+        "$P/TPRSetupsController.m" "$P/TPRSliderCell.m"
+    cp "$P"/Resources/*.plist "$BUILD/TopRowPrefs.bundle/"
+    codesign -s - -f "$BUILD/TopRowPrefs.bundle" >/dev/null 2>&1
     echo "built: $BUILD/TPRHost.app $BUILD/TopRow.dylib"
     ;;
 launch)
@@ -47,7 +58,8 @@ launch)
     xcrun simctl terminate "$UDID" "$BUNDLE" >/dev/null 2>&1 || true
     T="$(tmpdir)"; rm -f "$T"/tpr-*.txt
     if [ "${2:-}" = tweak ]; then
-        SIMCTL_CHILD_DYLD_INSERT_LIBRARIES="$BUILD/TopRow.dylib" xcrun simctl launch "$UDID" "$BUNDLE"
+        SIMCTL_CHILD_DYLD_INSERT_LIBRARIES="$BUILD/TopRow.dylib" SIMCTL_CHILD_TPR_PREFS_BUNDLE="$BUILD/TopRowPrefs.bundle" \
+            xcrun simctl launch "$UDID" "$BUNDLE"
     else
         xcrun simctl launch "$UDID" "$BUNDLE"
     fi
