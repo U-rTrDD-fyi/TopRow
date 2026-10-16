@@ -34,7 +34,7 @@ A number row for the stock iOS keyboard, and every other key your way. Free, ope
 
 ## Install
 
-Add **https://dev.rtrdd.fyi** to Sileo or Zebra and install **TopRow**, or download the `.deb` from [Releases](https://github.com/U-rTrDD-fyi/TopRow/releases).
+Add **https://dev.rtrdd.fyi** to Sileo or Zebra and install **TopRow**, or download the `.deb` from [Releases](https://github.com/aayy-dev/TopRow/releases).
 
 Requirements: iPhone on a rootless jailbreak, iOS 15 or later. Developed and tested on iOS 17.3.1 with Dopamine (and the iOS 18.4 simulator); reports from other versions are welcome. Depends on PreferenceLoader and AltList. Does nothing on iPad. Uninstall any other number-row tweak first; two of them on the same keyboard will clash.
 

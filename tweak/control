@@ -9,10 +9,10 @@ Description: A number row on top, and every key your way
  letters, Shift, 123 and #+= pages. Key height, bottom area, landscape,
  per-app and per-keyboard-type options, all applied live. iPhone only.
  Free and open source.
-Maintainer: U-rTrDD-fyi <275768457+U-rTrDD-fyi@users.noreply.github.com>
-Author: U-rTrDD-fyi <275768457+U-rTrDD-fyi@users.noreply.github.com>
+Maintainer: aay <275768457+aayy-dev@users.noreply.github.com>
+Author: aay <275768457+aayy-dev@users.noreply.github.com>
 Section: Tweaks
-Homepage: https://github.com/U-rTrDD-fyi/TopRow
+Homepage: https://github.com/aayy-dev/TopRow
 Icon: https://dev.rtrdd.fyi/icons/dev.rtrdd.toprow.png
 Depiction: https://dev.rtrdd.fyi/depictions/dev.rtrdd.toprow.html
 SileoDepiction: https://dev.rtrdd.fyi/depictions/dev.rtrdd.toprow.json
